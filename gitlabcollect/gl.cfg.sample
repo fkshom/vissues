@@ -1,0 +1,12 @@
+[global]
+default = home
+ssl_verify = true
+timeout = 5
+per_page = 100
+pagination = keyset
+order_by = id
+
+[home]
+url = https://gitlab.example.com
+private_token = thisisprivatetoken
+api_version = 4

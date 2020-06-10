@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>Document</title>
+  <style>
+    @import "asset/vue2vis.css";
+  </style>
+</head>
+<body>
+  <div id="app">
+    <network ref="network" :nodes="nodes" :edges="edges" :options="options"></network>
+  </div>
+  <script src="lib/vue.js"></script>
+  <script src="lib/vue2vis.umd.min.js"></script>
+  <script src="lib/axios.min.js"></script>
+  <script src="gitlabcollect/issues.json"></script>
+  <script src="gitlabcollect/relations.json"></script>
+  <script>
+    Vue.component('network', vue2vis.Network);
+    console.log(issues)
+    var app = new Vue({
+      el: '#app',
+      data() {
+        return {
+          info: [],
+          nodes: [],
+          edges: [],
+          options: {
+            width:  '100%',
+            height: '700px',
+            edges: {
+              color: 'red',
+              width: 1
+            }
+          }
+        }
+      },
+      mounted() {
+        const nodeids = []
+
+        // create nodes
+        function generateNodeObject(issue){
+          function epicNodeStyle(){
+            return {
+              color: {
+                border: '#1D5E6A',
+                background: '#3abcd4'
+              },
+              mass: 5,
+              value: 1,
+              scaling: { label: {enabled: true}}
+            }
+          }
+          function storyNodeStyle(){
+            return {
+              color: '#f7d4be',
+              mass: 5,
+              value: 1,
+              scaling: { label: {enabled: true}}
+            }
+          }
+          function issueNodeStyle(){
+            return {
+              color: {
+                border: 'black',
+                background: '#fae7e0'
+              },
+              mass: 5,
+              value: 1,
+              scaling: { label: {enabled: true}}
+            }
+          }
+          function determineNodeType(issue){
+            const labels = issue.labels
+            let nodetype = 'issue'
+            switch(true) {
+              case labels.includes('epic'):  nodetype = 'epic';  break;
+              case labels.includes('story'): nodetype = 'story'; break;
+              default:                       nodetype = 'issue'; break;
+            }
+            return nodetype
+          }
+          const nodeStyle = {
+            epic: epicNodeStyle,
+            story: storyNodeStyle,
+            issue: issueNodeStyle
+          }
+          const nodetype = determineNodeType(issue)
+          return {
+            id: issue.id,
+            label: `[${issue.iid.toString()}] ${issue.title}`,
+            title: issue.title + "<br>" + "aaa",
+            shape: 'box',
+            widthonstraint: {
+              minimum: 1,
+              maximum: 2
+            },
+            ...nodeStyle[nodetype]()
+          }
+        }
+        issues.forEach(issue => {
+          this.nodes.push(generateNodeObject(issue))
+          nodeids.push(issue.id)
+        })
+
+        // create edges
+        const fulledges = []
+        relations.forEach(relation => {
+          relation.links.forEach(link => {
+            fulledges.push([relation.id, link.id])
+          })
+        })
+        const unique_array_of_array = (array_of_array) => {
+          let set  = new Set(array_of_array.map(JSON.stringify))
+          return Array.from(set).map(JSON.parse)
+        }
+        const destination_nodeids = [...new Set(fulledges.map(edge => edge[1]))]
+
+        destination_nodeids.forEach(nodeid => {
+          if(!nodeids.includes(nodeid)){
+            this.nodes.push({
+              id: nodeid,
+              label: nodeid.toString(),
+              title: nodeid.toString(),
+              color: {
+                border: 'black',
+                background: 'white'
+              },
+              value: 1
+            })
+          }
+        })
+
+        const edges = unique_array_of_array(fulledges.map(e => e.sort()))
+        console.log(edges)
+        edges.forEach(edge => {
+          this.edges.push({
+            from: edge[0],
+            to: edge[1]
+          })
+        })
+        
+      }
+    })
+  </script>
+</body>
+</html>
